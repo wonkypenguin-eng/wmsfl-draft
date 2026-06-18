@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WMSFL Extravaganza Draft Room</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; font-size: 14px; }
+  #loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 18px; color: #666; }
+  #app { display: none; }
+
+  /* Top bar */
+  .top-bar { background: #1a1a2e; color: white; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .league-title { font-size: 16px; font-weight: 600; color: #e8b84b; margin-right: auto; }
+  .on-clock-wrap { display: flex; align-items: center; gap: 8px; }
+  .on-clock-label { font-size: 12px; color: #aaa; }
+  .on-clock-team { font-size: 15px; font-weight: 600; color: #fff; }
+  .pick-badge { background: #2d2d4e; padding: 3px 10px; border-radius: 20px; font-size: 12px; color: #ccc; }
+  .timer-wrap { display: flex; align-items: center; gap: 6px; background: #2d2d4e; padding: 6px 14px; border-radius: 20px; }
+  .timer { font-size: 18px; font-weight: 700; color: #e8b84b; font-variant-numeric: tabular-nums; }
+  .timer.expired { color: #e74c3c; }
+  .paused-pill { background: #e8b84b; color: #1a1a1a; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; display: none; }
+  .top-btn { background: transparent; border: 1px solid #555; color: #ccc; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .top-btn:hover { background: #2d2d4e; color: white; }
+
+  /* Layout */
+  .main-layout { display: grid; grid-template-columns: 200px 1fr 220px; height: calc(100vh - 54px); overflow: hidden; }
+
+  /* Left sidebar - teams */
+  .sidebar-left { background: white; border-right: 1px solid #e0e0e0; overflow-y: auto; }
+  .sidebar-section-title { padding: 10px 12px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; border-bottom: 1px solid #f0f0f0; }
+  .team-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .team-item:hover { background: #f8f8f8; }
+  .team-item.on-clock { background: #fff8e7; border-left: 3px solid #e8b84b; }
+  .team-item.on-clock .team-item-name { color: #b8860b; font-weight: 600; }
+  .team-item-name { font-size: 13px; color: #333; }
+  .team-item-count { font-size: 11px; color: #999; background: #f0f0f0; padding: 1px 6px; border-radius: 10px; }
+
+  /* Center - player pool */
+  .center { display: flex; flex-direction: column; overflow: hidden; background: #fafafa; }
+  .pool-controls { padding: 10px 14px; background: white; border-bottom: 1px solid #e0e0e0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sport-btn { padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; font-weight: 500; color: #666; }
+  .sport-btn:hover { border-color: #999; color: #333; }
+  .sport-btn.active { color: white; border-color: transparent; }
+  .sport-btn.active.all { background: #1a1a2e; }
+  .sport-btn.active.nfl { background: #013369; }
+  .sport-btn.active.nba { background: #c9082a; }
+  .sport-btn.active.nhl { background: #000; }
+  .sport-btn.active.mlb { background: #002d72; }
+  .search-box { flex: 1; min-width: 160px; padding: 5px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; }
+  .search-box:focus { border-color: #999; }
+  .pool-count { font-size: 12px; color: #999; white-space: nowrap; }
+
+  .pool-table-wrap { flex: 1; overflow-y: auto; }
+  .pool-table { width: 100%; border-collapse: collapse; }
+  .pool-table th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #999; background: #f5f5f5; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; }
+  .pool-table td { padding: 7px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+  .pool-table tr:hover td { background: #f8f8f8; }
+  .pool-table tr.drafted td { opacity: 0.35; }
+  .player-name-cell { font-weight: 500; color: #1a1a1a; }
+  .sport-tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .tag-NFL { background: #dce8ff; color: #013369; }
+  .tag-NBA { background: #ffe0e4; color: #c9082a; }
+  .tag-NHL { background: #e8e8e8; color: #333; }
+  .tag-MLB { background: #dce8ff; color: #002d72; }
+  .draft-pick-btn { padding: 3px 10px; background: #1a1a2e; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+  .draft-pick-btn:hover { background: #2d2d4e; }
+  .draft-pick-btn:disabled { background: #ccc; cursor: default; }
+
+  /* Right sidebar - recent picks */
+  .sidebar-right { background: white; border-left: 1px solid #e0e0e0; overflow-y: auto; }
+  .picks-list { padding: 4px 0; }
+  .pick-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; }
+  .pick-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .pick-num { font-size: 10px; color: #999; }
+  .pick-item-player { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+  .pick-item-team { font-size: 11px; color: #666; }
+  .empty-state { padding: 20px 12px; text-align: center; color: #bbb; font-size: 13px; }
+
+  /* Commissioner panel */
+  .comm-panel { background: #fff8e7; border-top: 1px solid #e8d88a; padding: 8px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .comm-label { font-size: 11px; font-weight: 700; color: #b8860b; text-transform: uppercase; }
+  .comm-btn { padding: 4px 12px; border: 1px solid #d4a800; background: white; color: #8a6500; border-radius: 5px; cursor: pointer; font-size: 12px; }
+  .comm-btn:hover { background: #fff3cc; }
+  .comm-select { padding: 4px 8px; border: 1px solid #d4a800; border-radius: 5px; font-size: 12px; color: #333; background: white; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; display: none; }
+  .modal { background: white; border-radius: 10px; padding: 24px; max-width: 400px; width: 90%; }
+  .modal h3 { font-size: 16px; margin-bottom: 12px; }
+  .modal p { font-size: 13px; color: #555; margin-bottom: 16px; }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { padding: 7px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; }
+  .btn-confirm { padding: 7px 16px; background: #1a1a2e; color: white; border: none; border-radius: 6px; cursor: pointer; }
+
+  .round-divider { background: #f0f0f0; padding: 4px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; }
+</style>
+</head>
+<body>
+
+<div id="loading">Loading WMSFL Draft Room…</div>
+
+<div id="app">
+  <div class="top-bar">
+    <span class="league-title">⚡ WMSFL Extravaganza Draft</span>
+    <div class="on-clock-wrap">
+      <span class="on-clock-label">On the clock:</span>
+      <span class="on-clock-team" id="clock-team">—</span>
+    </div>
+    <span class="pick-badge" id="pick-badge">Round 1 · Pick 1</span>
+    <div class="timer-wrap">
+      <span id="timer" class="timer">3:00:00</span>
+      <span class="paused-pill" id="paused-pill">PAUSED</span>
+    </div>
+    <button class="top-btn" id="pause-btn" onclick="togglePause()">Pause</button>
+    <button class="top-btn" onclick="showNameModal()">Set my team</button>
+  </div>
+
+  <div class="main-layout">
+    <!-- Teams -->
+    <div class="sidebar-left">
+      <div class="sidebar-section-title">Draft Order</div>
+      <div id="team-list"></div>
+    </div>
+
+    <!-- Player pool -->
+    <div class="center">
+      <div class="pool-controls">
+        <button class="sport-btn active all" onclick="setSport('ALL',this)">All</button>
+        <button class="sport-btn nfl" onclick="setSport('NFL',this)">NFL</button>
+        <button class="sport-btn nba" onclick="setSport('NBA',this)">NBA</button>
+        <button class="sport-btn nhl" onclick="setSport('NHL',this)">NHL</button>
+        <button class="sport-btn mlb" onclick="setSport('MLB',this)">MLB</button>
+        <input class="search-box" type="text" placeholder="Search players, positions, teams…" oninput="setSearch(this.value)" />
+        <span class="pool-count" id="pool-count"></span>
+      </div>
+      <div class="pool-table-wrap">
+        <table class="pool-table">
+          <thead>
+            <tr>
+              <th style="width:32px">#</th>
+              <th>Player</th>
+              <th>Pos</th>
+              <th>Sport</th>
+              <th>Team</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="player-tbody"></tbody>
+        </table>
+      </div>
+      <div class="comm-panel">
+        <span class="comm-label">⚙ Commissioner</span>
+        <select class="comm-select" id="comm-team-select"></select>
+        <button class="comm-btn" onclick="advanceClock()">Advance clock →</button>
+        <button class="comm-btn" onclick="resetDraft()">Reset draft</button>
+      </div>
+    </div>
+
+    <!-- Recent picks -->
+    <div class="sidebar-right">
+      <div class="sidebar-section-title">Pick History</div>
+      <div class="picks-list" id="picks-list">
+        <div class="empty-state">No picks yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Draft confirm modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Confirm pick</h3>
+    <p id="modal-body"></p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmDraft()">Draft player</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCBJOpMgF-w07L4p2QWHbB30VTkZFaO_WE",
+  authDomain: "wmsfl-draft.firebaseapp.com",
+  databaseURL: "https://wmsfl-draft-default-rtdb.firebaseio.com",
+  projectId: "wmsfl-draft",
+  storageBucket: "wmsfl-draft.firebasestorage.app",
+  messagingSenderId: "867958532467",
+  appId: "1:867958532467:web:3b9284d1ca056500b9bd06"
+};
+
+const CSV_URLS = {
+  NFL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS0VcRB8215ueOvGAFCGKo86obtR346EGEIgq3CCjCU21l5a80HoY_IPhaWz-kPROM_9ZPzZsNZPWZ/pub?gid=1730139916&single=true&output=csv",
+  NBA: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS0VcRB8215ueOvGAFCGKo86obtR346EGEIgq3CCjCU21l5a80HoY_IPhaWz-kPROM_9ZPzZsNZPWZ/pub?gid=1895235108&single=true&output=csv",
+  NHL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS0VcRB8215ueOvGAFCGKo86obtR346EGEIgq3CCjCU21l5a80HoY_IPhaWz-kPROM_9ZPzZsNZPWZ/pub?gid=0&single=true&output=csv",
+  MLB: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS0VcRB8215ueOvGAFCGKo86obtR346EGEIgq3CCjCU21l5a80HoY_IPhaWz-kPROM_9ZPzZsNZPWZ/pub?gid=1458137414&single=true&output=csv"
+};
+
+const TEAMS = [
+  "Isaac/Jake","Kitzman","CBod","Wonky","Houston","Josh",
+  "Ben","Brett","James","Razor","ProStars","Nic"
+];
+
+const TOTAL_ROUNDS = 25;
+const TIMER_SECONDS = 3 * 60 * 60;
+const PAUSE_START = 0;
+const PAUSE_END = 8 * 60 * 60;
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+let allPlayers = [];
+let draftState = { picks: [], currentPick: 0, paused: false, timerSeconds: TIMER_SECONDS };
+let sportFilter = 'ALL';
+let searchVal = '';
+let pendingPlayer = null;
+let timerInterval = null;
+let myTeamName = localStorage.getItem('wmsfl_team') || '';
+
+function snakeOrder(pickIndex) {
+  const round = Math.floor(pickIndex / 12);
+  const pos = pickIndex % 12;
+  return round % 2 === 0 ? pos : 11 - pos;
+}
+
+function teamForPick(pickIndex) {
+  return TEAMS[snakeOrder(pickIndex)];
+}
+
+async function parseCSV(url, sport) {
+  const resp = await fetch(url);
+  const text = await resp.text();
+  const lines = text.trim().split('\n');
+  return lines.slice(1).map(line => {
+    const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+    return { name: cols[0], sport, position: cols[2], team: cols[3], adp: parseFloat(cols[4]) || 9999, drafted: false };
+  }).filter(p => p.name);
+}
+
+async function loadPlayers() {
+  const results = await Promise.all(
+    Object.entries(CSV_URLS).map(([sport, url]) => parseCSV(url, sport))
+  );
+  allPlayers = results.flat().sort((a, b) => a.adp - b.adp);
+}
+
+function setSport(s, btn) {
+  sportFilter = s;
+  document.querySelectorAll('.sport-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPool();
+}
+
+function setSearch(v) { searchVal = v; renderPool(); }
+
+function filteredPlayers() {
+  return allPlayers.filter(p => {
+    const sportOk = sportFilter === 'ALL' || p.sport === sportFilter;
+    const q = searchVal.toLowerCase();
+    const searchOk = !q || p.name.toLowerCase().includes(q) || p.position.toLowerCase().includes(q) || p.team.toLowerCase().includes(q);
+    return sportOk && searchOk;
+  });
+}
+
+function renderPool() {
+  const tbody = document.getElementById('player-tbody');
+  const players = filteredPlayers();
+  const currentTeam = teamForPick(draftState.currentPick);
+  document.getElementById('pool-count').textContent = `${players.filter(p=>!p.drafted).length} available`;
+  tbody.innerHTML = players.map((p, i) => {
+    const isMyTurn = myTeamName && myTeamName === currentTeam;
+    return `<tr class="${p.drafted ? 'drafted' : ''}">
+      <td style="color:#bbb;font-size:11px">${Math.round(p.adp) || '—'}</td>
+      <td class="player-name-cell">${p.name}</td>
+      <td style="color:#666">${p.position}</td>
+      <td><span class="sport-tag tag-${p.sport}">${p.sport}</span></td>
+      <td style="color:#666">${p.team}</td>
+      <td>${p.drafted ? '<span style="color:#bbb;font-size:11px">Drafted</span>' :
+        `<button class="draft-pick-btn" onclick="initDraft('${p.name.replace(/'/g,"\\'")}')">Draft</button>`
+      }</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTeams() {
+  const currentTeam = teamForPick(draftState.currentPick);
+  const teamPickCounts = {};
+  TEAMS.forEach(t => teamPickCounts[t] = 0);
+  draftState.picks.forEach(p => { if(teamPickCounts[p.team] !== undefined) teamPickCounts[p.team]++; });
+
+  document.getElementById('team-list').innerHTML = TEAMS.map((t, i) => `
+    <div class="team-item ${t === currentTeam ? 'on-clock' : ''}">
+      <span class="team-item-name">${t}</span>
+      <span class="team-item-count">${teamPickCounts[t]}</span>
+    </div>`).join('');
+
+  const sel = document.getElementById('comm-team-select');
+  sel.innerHTML = TEAMS.map((t,i) => `<option value="${i}" ${i === draftState.currentPick % 12 ? 'selected':''}>Pick → ${t}</option>`).join('');
+}
+
+function renderPicks() {
+  const el = document.getElementById('picks-list');
+  if (!draftState.picks.length) { el.innerHTML = '<div class="empty-state">No picks yet</div>'; return; }
+  el.innerHTML = [...draftState.picks].reverse().map(p => `
+    <div class="pick-item">
+      <div class="pick-item-header">
+        <span class="pick-num">R${p.round} P${p.pickNum}</span>
+        <span class="sport-tag tag-${p.sport}">${p.sport}</span>
+      </div>
+      <div class="pick-item-player">${p.player}</div>
+      <div class="pick-item-team">${p.team}</div>
+    </div>`).join('');
+}
+
+function renderTopBar() {
+  const pick = draftState.currentPick;
+  const round = Math.floor(pick / 12) + 1;
+  const pickInRound = (pick % 12) + 1;
+  const team = teamForPick(pick);
+  document.getElementById('clock-team').textContent = team;
+  document.getElementById('pick-badge').textContent = `Round ${round} · Pick ${pickInRound} of 12`;
+  document.getElementById('timer').textContent = formatTime(draftState.timerSeconds);
+  document.getElementById('paused-pill').style.display = draftState.paused ? 'inline' : 'none';
+  document.getElementById('pause-btn').textContent = draftState.paused ? 'Resume' : 'Pause';
+}
+
+function formatTime(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (draftState.paused) return;
+    if (draftState.timerSeconds > 0) {
+      draftState.timerSeconds--;
+      const el = document.getElementById('timer');
+      el.textContent = formatTime(draftState.timerSeconds);
+      if (draftState.timerSeconds < 300) el.classList.add('expired');
+      else el.classList.remove('expired');
+    }
+  }, 1000);
+}
+
+function togglePause() {
+  db.ref('draft/paused').set(!draftState.paused);
+}
+
+function initDraft(playerName) {
+  pendingPlayer = allPlayers.find(p => p.name === playerName);
+  if (!pendingPlayer || pendingPlayer.drafted) return;
+  const team = teamForPick(draftState.currentPick);
+  document.getElementById('modal-title').textContent = 'Confirm pick';
+  document.getElementById('modal-body').textContent = `Draft ${pendingPlayer.name} (${pendingPlayer.sport} · ${pendingPlayer.position}) for ${team}?`;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  pendingPlayer = null;
+}
+
+function confirmDraft() {
+  if (!pendingPlayer) return;
+  const pick = draftState.currentPick;
+  const round = Math.floor(pick / 12) + 1;
+  const team = teamForPick(pick);
+  const pickData = {
+    pickNum: pick + 1,
+    round,
+    player: pendingPlayer.name,
+    sport: pendingPlayer.sport,
+    position: pendingPlayer.position,
+    team,
+    timestamp: Date.now()
+  };
+  db.ref(`draft/picks/${pick}`).set(pickData);
+  db.ref('draft/currentPick').set(pick + 1);
+  db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+  closeModal();
+}
+
+function advanceClock() {
+  const sel = document.getElementById('comm-team-select');
+  const idx = parseInt(sel.value);
+  db.ref('draft/currentPick').set(idx);
+  db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+}
+
+function resetDraft() {
+  if (!confirm('Reset the entire draft? This cannot be undone.')) return;
+  db.ref('draft').set({ currentPick: 0, paused: false, timerSeconds: TIMER_SECONDS, picks: [] });
+}
+
+function showNameModal() {
+  const name = prompt('Enter your team name exactly as listed (e.g. "Team 1"):', myTeamName);
+  if (name) { myTeamName = name; localStorage.setItem('wmsfl_team', name); renderPool(); }
+}
+
+function applyState(state) {
+  draftState.currentPick = state.currentPick || 0;
+  draftState.paused = state.paused || false;
+  draftState.timerSeconds = state.timerSeconds !== undefined ? state.timerSeconds : TIMER_SECONDS;
+  draftState.picks = state.picks ? Object.values(state.picks) : [];
+  const drafted = new Set(draftState.picks.map(p => p.player));
+  allPlayers.forEach(p => p.drafted = drafted.has(p.name));
+  renderTopBar();
+  renderTeams();
+  renderPool();
+  renderPicks();
+}
+
+async function init() {
+  await loadPlayers();
+  const stateRef = db.ref('draft');
+  stateRef.once('value', snap => {
+    if (!snap.exists()) {
+      db.ref('draft').set({ currentPick: 0, paused: false, timerSeconds: TIMER_SECONDS });
+    }
+  });
+  stateRef.on('value', snap => {
+    const state = snap.val() || {};
+    applyState(state);
+  });
+  startTimer();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+init().catch(err => {
+  document.getElementById('loading').textContent = 'Error loading draft room: ' + err.message;
+});
+</script>
+</body>
+</html>
