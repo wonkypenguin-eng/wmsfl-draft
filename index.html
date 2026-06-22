@@ -9,10 +9,10 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; font-size: 14px; }
-  #loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 18px; color: #666; }
+  #loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 18px; color: #666; flex-direction: column; gap: 12px; }
+  .loading-sub { font-size: 13px; color: #999; }
   #app { display: none; }
 
-  /* Top bar */
   .top-bar { background: #1a1a2e; color: white; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .league-title { font-size: 16px; font-weight: 600; color: #e8b84b; margin-right: auto; }
   .on-clock-wrap { display: flex; align-items: center; gap: 8px; }
@@ -21,25 +21,39 @@
   .pick-badge { background: #2d2d4e; padding: 3px 10px; border-radius: 20px; font-size: 12px; color: #ccc; }
   .timer-wrap { display: flex; align-items: center; gap: 6px; background: #2d2d4e; padding: 6px 14px; border-radius: 20px; }
   .timer { font-size: 18px; font-weight: 700; color: #e8b84b; font-variant-numeric: tabular-nums; }
-  .timer.expired { color: #e74c3c; }
+  .timer.warning { color: #ff9500; }
+  .timer.expired { color: #e74c3c; animation: pulse 1s infinite; }
+  .timer.paused { color: #888; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
   .paused-pill { background: #e8b84b; color: #1a1a1a; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; display: none; }
+  .autopick-pill { background: #e74c3c; color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; display: none; animation: pulse 1s infinite; }
   .top-btn { background: transparent; border: 1px solid #555; color: #ccc; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
   .top-btn:hover { background: #2d2d4e; color: white; }
 
-  /* Layout */
-  .main-layout { display: grid; grid-template-columns: 200px 1fr 220px; height: calc(100vh - 54px); overflow: hidden; }
+  .main-layout { display: grid; grid-template-columns: 220px 1fr 240px; height: calc(100vh - 54px); overflow: hidden; }
 
-  /* Left sidebar - teams */
+  /* Left sidebar */
   .sidebar-left { background: white; border-right: 1px solid #e0e0e0; overflow-y: auto; }
   .sidebar-section-title { padding: 10px 12px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; border-bottom: 1px solid #f0f0f0; }
-  .team-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-  .team-item:hover { background: #f8f8f8; }
+  .team-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
+  .team-item:hover { background: #f0f4ff; }
   .team-item.on-clock { background: #fff8e7; border-left: 3px solid #e8b84b; }
   .team-item.on-clock .team-item-name { color: #b8860b; font-weight: 600; }
+  .team-item.selected { background: #e8f0fe; border-left: 3px solid #4a6fa5; }
+  .team-item.selected .team-item-name { color: #1a3a6e; font-weight: 600; }
   .team-item-name { font-size: 13px; color: #333; }
   .team-item-count { font-size: 11px; color: #999; background: #f0f0f0; padding: 1px 6px; border-radius: 10px; }
 
-  /* Center - player pool */
+  /* Team roster panel */
+  .team-roster-panel { display: none; background: #f8f9ff; border-bottom: 1px solid #dde; padding: 10px 12px; }
+  .team-roster-panel.visible { display: block; }
+  .roster-sport-group { margin-bottom: 8px; }
+  .roster-sport-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #999; margin-bottom: 4px; }
+  .roster-player { font-size: 12px; color: #333; padding: 2px 0; border-bottom: 1px solid #eef; display: flex; justify-content: space-between; }
+  .roster-player-pos { color: #999; font-size: 11px; }
+  .roster-empty { font-size: 12px; color: #bbb; font-style: italic; }
+
+  /* Center */
   .center { display: flex; flex-direction: column; overflow: hidden; background: #fafafa; }
   .pool-controls { padding: 10px 14px; background: white; border-bottom: 1px solid #e0e0e0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .sport-btn { padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; font-weight: 500; color: #666; }
@@ -56,10 +70,10 @@
 
   .pool-table-wrap { flex: 1; overflow-y: auto; }
   .pool-table { width: 100%; border-collapse: collapse; }
-  .pool-table th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #999; background: #f5f5f5; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; }
+  .pool-table th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #999; background: #f5f5f5; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; z-index: 1; }
   .pool-table td { padding: 7px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
   .pool-table tr:hover td { background: #f8f8f8; }
-  .pool-table tr.drafted td { opacity: 0.35; }
+  .pool-table tr.drafted td { opacity: 0.3; }
   .player-name-cell { font-weight: 500; color: #1a1a1a; }
   .sport-tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
   .tag-NFL { background: #dce8ff; color: #013369; }
@@ -70,7 +84,12 @@
   .draft-pick-btn:hover { background: #2d2d4e; }
   .draft-pick-btn:disabled { background: #ccc; cursor: default; }
 
-  /* Right sidebar - recent picks */
+  /* Auto-pick banner */
+  .autopick-banner { display: none; background: #e74c3c; color: white; padding: 10px 16px; font-size: 13px; font-weight: 500; align-items: center; gap: 12px; }
+  .autopick-banner.visible { display: flex; }
+  .autopick-countdown { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+
+  /* Right sidebar */
   .sidebar-right { background: white; border-left: 1px solid #e0e0e0; overflow-y: auto; }
   .picks-list { padding: 4px 0; }
   .pick-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; }
@@ -78,6 +97,8 @@
   .pick-num { font-size: 10px; color: #999; }
   .pick-item-player { font-size: 13px; font-weight: 500; color: #1a1a1a; }
   .pick-item-team { font-size: 11px; color: #666; }
+  .pick-item.autopick .pick-item-player { color: #c0392b; }
+  .pick-item.autopick .pick-num::after { content: ' · AUTO'; color: #e74c3c; font-weight: 700; }
   .empty-state { padding: 20px 12px; text-align: center; color: #bbb; font-size: 13px; }
 
   /* Commissioner panel */
@@ -88,20 +109,23 @@
   .comm-select { padding: 4px 8px; border: 1px solid #d4a800; border-radius: 5px; font-size: 12px; color: #333; background: white; }
 
   /* Modal */
-  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; display: none; }
-  .modal { background: white; border-radius: 10px; padding: 24px; max-width: 400px; width: 90%; }
-  .modal h3 { font-size: 16px; margin-bottom: 12px; }
-  .modal p { font-size: 13px; color: #555; margin-bottom: 16px; }
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.visible { display: flex; }
+  .modal { background: white; border-radius: 10px; padding: 24px; max-width: 420px; width: 90%; }
+  .modal h3 { font-size: 16px; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.5; }
   .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .btn-cancel { padding: 7px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; }
-  .btn-confirm { padding: 7px 16px; background: #1a1a2e; color: white; border: none; border-radius: 6px; cursor: pointer; }
-
-  .round-divider { background: #f0f0f0; padding: 4px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; }
+  .btn-cancel { padding: 7px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .btn-confirm { padding: 7px 16px; background: #1a1a2e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .btn-confirm:hover { background: #2d2d4e; }
 </style>
 </head>
 <body>
 
-<div id="loading">Loading WMSFL Draft Room…</div>
+<div id="loading">
+  <div>⚡ Loading WMSFL Draft Room…</div>
+  <div class="loading-sub" id="loading-sub">Fetching player pool…</div>
+</div>
 
 <div id="app">
   <div class="top-bar">
@@ -114,19 +138,22 @@
     <div class="timer-wrap">
       <span id="timer" class="timer">3:00:00</span>
       <span class="paused-pill" id="paused-pill">PAUSED</span>
+      <span class="autopick-pill" id="autopick-pill">AUTO-PICK</span>
     </div>
     <button class="top-btn" id="pause-btn" onclick="togglePause()">Pause</button>
     <button class="top-btn" onclick="showNameModal()">Set my team</button>
   </div>
 
+  <div class="autopick-banner" id="autopick-banner">
+    ⚠️ Clock expired — auto-picking best available in <span class="autopick-countdown" id="autopick-countdown">60</span>s
+  </div>
+
   <div class="main-layout">
-    <!-- Teams -->
-    <div class="sidebar-left">
-      <div class="sidebar-section-title">Draft Order</div>
+    <div class="sidebar-left" id="sidebar-left">
+      <div class="sidebar-section-title">Draft Order — click to view roster</div>
       <div id="team-list"></div>
     </div>
 
-    <!-- Player pool -->
     <div class="center">
       <div class="pool-controls">
         <button class="sport-btn active all" onclick="setSport('ALL',this)">All</button>
@@ -141,7 +168,7 @@
         <table class="pool-table">
           <thead>
             <tr>
-              <th style="width:32px">#</th>
+              <th style="width:36px">ADP</th>
               <th>Player</th>
               <th>Pos</th>
               <th>Sport</th>
@@ -160,7 +187,6 @@
       </div>
     </div>
 
-    <!-- Recent picks -->
     <div class="sidebar-right">
       <div class="sidebar-section-title">Pick History</div>
       <div class="picks-list" id="picks-list">
@@ -170,7 +196,6 @@
   </div>
 </div>
 
-<!-- Draft confirm modal -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <h3 id="modal-title">Confirm pick</h3>
@@ -207,8 +232,9 @@ const TEAMS = [
 
 const TOTAL_ROUNDS = 25;
 const TIMER_SECONDS = 3 * 60 * 60;
-const PAUSE_START = 0;
-const PAUSE_END = 8 * 60 * 60;
+const PAUSE_START_HOUR = 0;   // midnight ET
+const PAUSE_END_HOUR = 8;     // 8am ET
+const AUTOPICK_GRACE = 60;    // seconds after expiry before auto-pick
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
@@ -219,42 +245,53 @@ let sportFilter = 'ALL';
 let searchVal = '';
 let pendingPlayer = null;
 let timerInterval = null;
+let autopickInterval = null;
+let autopickCountdown = AUTOPICK_GRACE;
+let selectedTeamIdx = null;
 let myTeamName = localStorage.getItem('wmsfl_team') || '';
 
+// ── Snake order ──────────────────────────────────────────────
 function snakeOrder(pickIndex) {
   const round = Math.floor(pickIndex / 12);
   const pos = pickIndex % 12;
   return round % 2 === 0 ? pos : 11 - pos;
 }
+function teamForPick(pickIndex) { return TEAMS[snakeOrder(pickIndex)]; }
 
-function teamForPick(pickIndex) {
-  return TEAMS[snakeOrder(pickIndex)];
+// ── Active hours check (ET) ──────────────────────────────────
+function isDraftActiveHour() {
+  const etOffset = -5; // EST; adjust to -4 for EDT if needed
+  const now = new Date();
+  const etHour = (now.getUTCHours() + 24 + etOffset) % 24;
+  return etHour >= PAUSE_END_HOUR && etHour < (24 - Math.abs(PAUSE_START_HOUR));
 }
 
+// ── CSV loading ──────────────────────────────────────────────
 async function parseCSV(url, sport) {
   const resp = await fetch(url);
   const text = await resp.text();
   const lines = text.trim().split('\n');
   return lines.slice(1).map(line => {
     const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-    return { name: cols[0], sport, position: cols[2], team: cols[3], adp: parseFloat(cols[4]) || 9999, drafted: false };
+    return { name: cols[0], sport, position: cols[2], team: cols[3], adp: parseFloat(cols[4]) || 9999, drafted: false, draftedBy: null };
   }).filter(p => p.name);
 }
 
 async function loadPlayers() {
+  document.getElementById('loading-sub').textContent = 'Fetching player pool…';
   const results = await Promise.all(
     Object.entries(CSV_URLS).map(([sport, url]) => parseCSV(url, sport))
   );
   allPlayers = results.flat().sort((a, b) => a.adp - b.adp);
 }
 
+// ── Filters ──────────────────────────────────────────────────
 function setSport(s, btn) {
   sportFilter = s;
   document.querySelectorAll('.sport-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderPool();
 }
-
 function setSearch(v) { searchVal = v; renderPool(); }
 
 function filteredPlayers() {
@@ -266,47 +303,80 @@ function filteredPlayers() {
   });
 }
 
+// ── Render pool ──────────────────────────────────────────────
 function renderPool() {
   const tbody = document.getElementById('player-tbody');
   const players = filteredPlayers();
-  const currentTeam = teamForPick(draftState.currentPick);
-  document.getElementById('pool-count').textContent = `${players.filter(p=>!p.drafted).length} available`;
-  tbody.innerHTML = players.map((p, i) => {
-    const isMyTurn = myTeamName && myTeamName === currentTeam;
-    return `<tr class="${p.drafted ? 'drafted' : ''}">
-      <td style="color:#bbb;font-size:11px">${Math.round(p.adp) || '—'}</td>
+  document.getElementById('pool-count').textContent = `${allPlayers.filter(p=>!p.drafted).length} available`;
+  tbody.innerHTML = players.map(p => `
+    <tr class="${p.drafted ? 'drafted' : ''}">
+      <td style="color:#bbb;font-size:11px">${Math.round(p.adp)||'—'}</td>
       <td class="player-name-cell">${p.name}</td>
       <td style="color:#666">${p.position}</td>
       <td><span class="sport-tag tag-${p.sport}">${p.sport}</span></td>
       <td style="color:#666">${p.team}</td>
-      <td>${p.drafted ? '<span style="color:#bbb;font-size:11px">Drafted</span>' :
-        `<button class="draft-pick-btn" onclick="initDraft('${p.name.replace(/'/g,"\\'")}')">Draft</button>`
+      <td>${p.drafted
+        ? `<span style="color:#bbb;font-size:11px">${p.draftedBy||'Drafted'}</span>`
+        : `<button class="draft-pick-btn" onclick="initDraft('${p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">Draft</button>`
       }</td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
 }
 
+// ── Render teams ─────────────────────────────────────────────
 function renderTeams() {
   const currentTeam = teamForPick(draftState.currentPick);
-  const teamPickCounts = {};
-  TEAMS.forEach(t => teamPickCounts[t] = 0);
-  draftState.picks.forEach(p => { if(teamPickCounts[p.team] !== undefined) teamPickCounts[p.team]++; });
+  const teamPicks = {};
+  TEAMS.forEach(t => teamPicks[t] = []);
+  draftState.picks.forEach(p => { if(teamPicks[p.team]) teamPicks[p.team].push(p); });
 
-  document.getElementById('team-list').innerHTML = TEAMS.map((t, i) => `
-    <div class="team-item ${t === currentTeam ? 'on-clock' : ''}">
-      <span class="team-item-name">${t}</span>
-      <span class="team-item-count">${teamPickCounts[t]}</span>
-    </div>`).join('');
+  const list = document.getElementById('team-list');
+  list.innerHTML = TEAMS.map((t, i) => {
+    const isOnClock = t === currentTeam;
+    const isSelected = i === selectedTeamIdx;
+    const picks = teamPicks[t] || [];
+    const rosterHTML = isSelected ? buildRosterPanel(t, picks) : '';
+    return `
+      <div class="team-item ${isOnClock?'on-clock':''} ${isSelected?'selected':''}" onclick="toggleTeam(${i})">
+        <span class="team-item-name">${t}</span>
+        <span class="team-item-count">${picks.length}</span>
+      </div>
+      ${rosterHTML}`;
+  }).join('');
 
   const sel = document.getElementById('comm-team-select');
-  sel.innerHTML = TEAMS.map((t,i) => `<option value="${i}" ${i === draftState.currentPick % 12 ? 'selected':''}>Pick → ${t}</option>`).join('');
+  sel.innerHTML = TEAMS.map((t,i) => `<option value="${i}">Pick → ${t}</option>`).join('');
 }
 
+function buildRosterPanel(team, picks) {
+  if (!picks.length) return `<div class="team-roster-panel visible"><div class="roster-empty">No picks yet</div></div>`;
+  const bySport = { NFL:[], NBA:[], NHL:[], MLB:[] };
+  picks.forEach(p => { if(bySport[p.sport]) bySport[p.sport].push(p); });
+  const sportOrder = ['NFL','NHL','NBA','MLB'];
+  const html = sportOrder.map(sport => {
+    if (!bySport[sport].length) return '';
+    return `<div class="roster-sport-group">
+      <div class="roster-sport-label">${sport}</div>
+      ${bySport[sport].map(p => `
+        <div class="roster-player">
+          <span>${p.player}</span>
+          <span class="roster-player-pos">${p.position}</span>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+  return `<div class="team-roster-panel visible">${html}</div>`;
+}
+
+function toggleTeam(idx) {
+  selectedTeamIdx = selectedTeamIdx === idx ? null : idx;
+  renderTeams();
+}
+
+// ── Render picks ─────────────────────────────────────────────
 function renderPicks() {
   const el = document.getElementById('picks-list');
   if (!draftState.picks.length) { el.innerHTML = '<div class="empty-state">No picks yet</div>'; return; }
   el.innerHTML = [...draftState.picks].reverse().map(p => `
-    <div class="pick-item">
+    <div class="pick-item ${p.auto?'autopick':''}">
       <div class="pick-item-header">
         <span class="pick-num">R${p.round} P${p.pickNum}</span>
         <span class="sport-tag tag-${p.sport}">${p.sport}</span>
@@ -316,52 +386,110 @@ function renderPicks() {
     </div>`).join('');
 }
 
+// ── Top bar ──────────────────────────────────────────────────
 function renderTopBar() {
   const pick = draftState.currentPick;
+  const totalPicks = TOTAL_ROUNDS * 12;
+  if (pick >= totalPicks) {
+    document.getElementById('clock-team').textContent = 'Draft complete!';
+    document.getElementById('pick-badge').textContent = `${totalPicks} total picks`;
+    document.getElementById('timer').textContent = '—';
+    return;
+  }
   const round = Math.floor(pick / 12) + 1;
   const pickInRound = (pick % 12) + 1;
-  const team = teamForPick(pick);
-  document.getElementById('clock-team').textContent = team;
+  document.getElementById('clock-team').textContent = teamForPick(pick);
   document.getElementById('pick-badge').textContent = `Round ${round} · Pick ${pickInRound} of 12`;
-  document.getElementById('timer').textContent = formatTime(draftState.timerSeconds);
+  const t = document.getElementById('timer');
+  t.textContent = formatTime(draftState.timerSeconds);
+  t.className = 'timer';
+  if (draftState.paused) t.classList.add('paused');
+  else if (draftState.timerSeconds === 0) t.classList.add('expired');
+  else if (draftState.timerSeconds < 300) t.classList.add('warning');
   document.getElementById('paused-pill').style.display = draftState.paused ? 'inline' : 'none';
   document.getElementById('pause-btn').textContent = draftState.paused ? 'Resume' : 'Pause';
 }
 
 function formatTime(s) {
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
   return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
+// ── Timer ────────────────────────────────────────────────────
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
-    if (draftState.paused) return;
-    if (draftState.timerSeconds > 0) {
-      draftState.timerSeconds--;
-      const el = document.getElementById('timer');
-      el.textContent = formatTime(draftState.timerSeconds);
-      if (draftState.timerSeconds < 300) el.classList.add('expired');
-      else el.classList.remove('expired');
+    if (draftState.paused || draftState.timerSeconds <= 0) return;
+    draftState.timerSeconds--;
+    renderTopBar();
+    if (draftState.timerSeconds === 0 && isDraftActiveHour()) {
+      startAutopickCountdown();
     }
   }, 1000);
 }
 
+// ── Auto-pick ────────────────────────────────────────────────
+function startAutopickCountdown() {
+  if (autopickInterval) return;
+  autopickCountdown = AUTOPICK_GRACE;
+  document.getElementById('autopick-banner').classList.add('visible');
+  document.getElementById('autopick-pill').style.display = 'inline';
+  document.getElementById('autopick-countdown').textContent = autopickCountdown;
+
+  autopickInterval = setInterval(() => {
+    if (draftState.paused || !isDraftActiveHour()) {
+      clearAutopickCountdown();
+      return;
+    }
+    autopickCountdown--;
+    document.getElementById('autopick-countdown').textContent = autopickCountdown;
+    if (autopickCountdown <= 0) {
+      clearAutopickCountdown();
+      executeAutopick();
+    }
+  }, 1000);
+}
+
+function clearAutopickCountdown() {
+  clearInterval(autopickInterval);
+  autopickInterval = null;
+  document.getElementById('autopick-banner').classList.remove('visible');
+  document.getElementById('autopick-pill').style.display = 'none';
+}
+
+function executeAutopick() {
+  const bestAvailable = allPlayers.find(p => !p.drafted);
+  if (!bestAvailable) return;
+  const pick = draftState.currentPick;
+  const round = Math.floor(pick / 12) + 1;
+  const team = teamForPick(pick);
+  const pickData = {
+    pickNum: pick + 1, round, player: bestAvailable.name,
+    sport: bestAvailable.sport, position: bestAvailable.position,
+    team, auto: true, timestamp: Date.now()
+  };
+  db.ref(`draft/picks/${pick}`).set(pickData);
+  db.ref('draft/currentPick').set(pick + 1);
+  db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+}
+
+// ── Draft actions ────────────────────────────────────────────
 function togglePause() {
   db.ref('draft/paused').set(!draftState.paused);
 }
 
 function initDraft(playerName) {
-  pendingPlayer = allPlayers.find(p => p.name === playerName);
-  if (!pendingPlayer || pendingPlayer.drafted) return;
+  const p = allPlayers.find(pl => pl.name === playerName);
+  if (!p || p.drafted) return;
+  pendingPlayer = p;
   const team = teamForPick(draftState.currentPick);
   document.getElementById('modal-title').textContent = 'Confirm pick';
-  document.getElementById('modal-body').textContent = `Draft ${pendingPlayer.name} (${pendingPlayer.sport} · ${pendingPlayer.position}) for ${team}?`;
-  document.getElementById('modal').style.display = 'flex';
+  document.getElementById('modal-body').textContent = `Draft ${p.name} (${p.sport} · ${p.position}) for ${team}?`;
+  document.getElementById('modal').classList.add('visible');
 }
 
 function closeModal() {
-  document.getElementById('modal').style.display = 'none';
+  document.getElementById('modal').classList.remove('visible');
   pendingPlayer = null;
 }
 
@@ -370,70 +498,87 @@ function confirmDraft() {
   const pick = draftState.currentPick;
   const round = Math.floor(pick / 12) + 1;
   const team = teamForPick(pick);
-  const pickData = {
-    pickNum: pick + 1,
-    round,
-    player: pendingPlayer.name,
-    sport: pendingPlayer.sport,
-    position: pendingPlayer.position,
-    team,
-    timestamp: Date.now()
-  };
-  db.ref(`draft/picks/${pick}`).set(pickData);
+  db.ref(`draft/picks/${pick}`).set({
+    pickNum: pick + 1, round, player: pendingPlayer.name,
+    sport: pendingPlayer.sport, position: pendingPlayer.position,
+    team, auto: false, timestamp: Date.now()
+  });
   db.ref('draft/currentPick').set(pick + 1);
   db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+  clearAutopickCountdown();
   closeModal();
 }
 
 function advanceClock() {
-  const sel = document.getElementById('comm-team-select');
-  const idx = parseInt(sel.value);
+  const idx = parseInt(document.getElementById('comm-team-select').value);
   db.ref('draft/currentPick').set(idx);
   db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+  clearAutopickCountdown();
 }
 
 function resetDraft() {
   if (!confirm('Reset the entire draft? This cannot be undone.')) return;
   db.ref('draft').set({ currentPick: 0, paused: false, timerSeconds: TIMER_SECONDS, picks: [] });
+  clearAutopickCountdown();
 }
 
 function showNameModal() {
-  const name = prompt('Enter your team name exactly as listed (e.g. "Team 1"):', myTeamName);
-  if (name) { myTeamName = name; localStorage.setItem('wmsfl_team', name); renderPool(); }
+  const name = prompt('Enter your team name exactly as listed:', myTeamName);
+  if (name) { myTeamName = name.trim(); localStorage.setItem('wmsfl_team', myTeamName); }
 }
 
+// ── State sync ───────────────────────────────────────────────
 function applyState(state) {
+  const prevPick = draftState.currentPick;
   draftState.currentPick = state.currentPick || 0;
   draftState.paused = state.paused || false;
   draftState.timerSeconds = state.timerSeconds !== undefined ? state.timerSeconds : TIMER_SECONDS;
   draftState.picks = state.picks ? Object.values(state.picks) : [];
+
   const drafted = new Set(draftState.picks.map(p => p.player));
-  allPlayers.forEach(p => p.drafted = drafted.has(p.name));
+  allPlayers.forEach(p => {
+    p.drafted = drafted.has(p.name);
+    if (p.drafted) {
+      const pick = draftState.picks.find(pk => pk.player === p.name);
+      p.draftedBy = pick ? pick.team : null;
+    }
+  });
+
+  // If pick advanced, clear any pending autopick
+  if (draftState.currentPick !== prevPick) clearAutopickCountdown();
+
+  // If paused during active hours, cancel autopick
+  if (draftState.paused) clearAutopickCountdown();
+
   renderTopBar();
   renderTeams();
   renderPool();
   renderPicks();
 }
 
+// ── Init ─────────────────────────────────────────────────────
 async function init() {
   await loadPlayers();
+  document.getElementById('loading-sub').textContent = 'Connecting to draft room…';
+
   const stateRef = db.ref('draft');
   stateRef.once('value', snap => {
     if (!snap.exists()) {
       db.ref('draft').set({ currentPick: 0, paused: false, timerSeconds: TIMER_SECONDS });
     }
   });
+
   stateRef.on('value', snap => {
-    const state = snap.val() || {};
-    applyState(state);
+    applyState(snap.val() || {});
   });
+
   startTimer();
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
 
 init().catch(err => {
-  document.getElementById('loading').textContent = 'Error loading draft room: ' + err.message;
+  document.getElementById('loading').innerHTML = `<div style="color:#e74c3c">Error: ${err.message}</div>`;
 });
 </script>
 </body>
