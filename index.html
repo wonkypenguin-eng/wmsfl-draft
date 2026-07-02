@@ -13,7 +13,7 @@
   .loading-sub { font-size: 13px; color: #999; }
   #app { display: none; }
 
-  /* ââ Mode banner ââ */
+  /* ── Mode banner ── */
   .mode-banner { padding: 10px 20px; display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 500; }
   .mode-banner.keeper-mode { background: #4a6fa5; color: white; }
   .mode-banner.draft-mode { background: #1a1a2e; color: white; }
@@ -25,7 +25,7 @@
   .mode-btn.danger { border-color: #e74c3c; color: #ffaaaa; }
   .mode-btn.danger:hover { background: rgba(231,76,60,0.2); }
 
-  /* ââ Top bar (draft mode) ââ */
+  /* ── Top bar (draft mode) ── */
   .top-bar { background: #1a1a2e; color: white; padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .league-title { font-size: 15px; font-weight: 600; color: #e8b84b; margin-right: auto; }
   .on-clock-wrap { display: flex; align-items: center; gap: 8px; }
@@ -47,12 +47,12 @@
   .autopick-banner.visible { display: flex; }
   .autopick-countdown { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
 
-  /* ââ Layout ââ */
+  /* ── Layout ── */
   .main-layout { display: grid; grid-template-columns: 220px 1fr 240px; overflow: hidden; }
   .main-layout.keeper { height: calc(100vh - 48px); }
   .main-layout.draft { height: calc(100vh - 94px); }
 
-  /* ââ Left sidebar ââ */
+  /* ── Left sidebar ── */
   .sidebar-left { background: white; border-right: 1px solid #e0e0e0; overflow-y: auto; }
   .sidebar-section-title { padding: 10px 12px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; border-bottom: 1px solid #f0f0f0; }
   .team-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
@@ -77,7 +77,7 @@
   .roster-player-pos { color: #999; font-size: 11px; }
   .roster-empty { font-size: 12px; color: #bbb; font-style: italic; }
 
-  /* ââ Center ââ */
+  /* ── Center ── */
   .center { display: flex; flex-direction: column; overflow: hidden; background: #fafafa; }
   .pool-controls { padding: 10px 14px; background: white; border-bottom: 1px solid #e0e0e0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .sport-btn { padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; font-weight: 500; color: #666; }
@@ -129,7 +129,7 @@
   .comm-btn:hover { background: #fff3cc; }
   .comm-select { padding: 4px 8px; border: 1px solid #d4a800; border-radius: 5px; font-size: 12px; color: #333; background: white; }
 
-  /* ââ Right sidebar ââ */
+  /* ── Right sidebar ── */
   .sidebar-right { background: white; border-left: 1px solid #e0e0e0; overflow-y: auto; }
   .picks-list { padding: 4px 0; }
   .pick-item { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; }
@@ -138,9 +138,9 @@
   .pick-item-player { font-size: 13px; font-weight: 500; color: #1a1a1a; }
   .pick-item-team { font-size: 11px; color: #666; }
   .pick-item.autopick .pick-item-player { color: #c0392b; }
-  .pick-item.autopick .pick-num::after { content: ' Â· AUTO'; color: #e74c3c; font-weight: 700; }
+  .pick-item.autopick .pick-num::after { content: ' · AUTO'; color: #e74c3c; font-weight: 700; }
   .pick-item.keeper-pick { background: #f0f7ff; }
-  .pick-item.keeper-pick .pick-num::after { content: ' Â· KEEPER'; color: #4a6fa5; font-weight: 700; }
+  .pick-item.keeper-pick .pick-num::after { content: ' · KEEPER'; color: #4a6fa5; font-weight: 700; }
   .empty-state { padding: 20px 12px; text-align: center; color: #bbb; font-size: 13px; }
 
   /* Keeper summary in right sidebar */
@@ -154,7 +154,7 @@
   .keeper-player-item { padding: 2px 0; display: flex; justify-content: space-between; }
   .keeper-player-sport { font-size: 10px; color: #999; }
 
-  /* ââ Modal ââ */
+  /* ── Modal ── */
   .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
   .modal-overlay.visible { display: flex; }
   .modal { background: white; border-radius: 10px; padding: 24px; max-width: 420px; width: 90%; }
@@ -170,29 +170,29 @@
 <body>
 
 <div id="loading">
-  <div>â¡ Loading WMSFL Draft Roomâ¦</div>
-  <div class="loading-sub" id="loading-sub">Fetching player poolâ¦</div>
+  <div>⚡ Loading WMSFL Draft Room…</div>
+  <div class="loading-sub" id="loading-sub">Fetching player pool…</div>
 </div>
 
 <div id="app">
 
   <!-- KEEPER MODE BANNER -->
   <div class="mode-banner keeper-mode" id="keeper-banner">
-    <span class="mode-banner-title">ð Keeper Entry Mode</span>
+    <span class="mode-banner-title">🔒 Keeper Entry Mode</span>
     <span id="keeper-progress-label" style="font-size:12px;opacity:0.8"></span>
     <button class="mode-btn danger" onclick="clearAllKeepers()">Clear all keepers</button>
-    <button class="mode-btn primary" onclick="lockKeepers()">Lock Keepers & Start Draft â</button>
+    <button class="mode-btn primary" onclick="lockKeepers()">Lock Keepers & Start Draft →</button>
   </div>
 
   <!-- DRAFT MODE HEADER -->
   <div id="draft-header" style="display:none">
     <div class="top-bar">
-      <span class="league-title">â¡ WMSFL Extravaganza Draft</span>
+      <span class="league-title">⚡ WMSFL Extravaganza Draft</span>
       <div class="on-clock-wrap">
         <span class="on-clock-label">On the clock:</span>
-        <span class="on-clock-team" id="clock-team">â</span>
+        <span class="on-clock-team" id="clock-team">—</span>
       </div>
-      <span class="pick-badge" id="pick-badge">Round 1 Â· Pick 1</span>
+      <span class="pick-badge" id="pick-badge">Round 1 · Pick 1</span>
       <div class="timer-wrap">
         <span id="timer" class="timer">3:00:00</span>
         <span class="paused-pill" id="paused-pill">PAUSED</span>
@@ -203,7 +203,7 @@
       <button class="top-btn" onclick="unlockKeepers()">Edit keepers</button>
     </div>
     <div class="autopick-banner" id="autopick-banner">
-      â ï¸ Clock expired â auto-picking best available in <span class="autopick-countdown" id="autopick-countdown">60</span>s
+      ⚠️ Clock expired — auto-picking best available in <span class="autopick-countdown" id="autopick-countdown">60</span>s
     </div>
   </div>
 
@@ -211,7 +211,7 @@
 
     <!-- Left sidebar -->
     <div class="sidebar-left">
-      <div class="sidebar-section-title" id="left-sidebar-title">Teams â click to view</div>
+      <div class="sidebar-section-title" id="left-sidebar-title">Teams — click to view</div>
       <div id="team-list"></div>
     </div>
 
@@ -221,7 +221,7 @@
       <div class="keeper-team-bar" id="keeper-team-bar">
         <label>Entering keepers for:</label>
         <select class="keeper-team-select" id="keeper-team-select" onchange="onKeeperTeamChange()">
-          <option value="">â Select a team â</option>
+          <option value="">— Select a team —</option>
         </select>
         <span class="keeper-counter" id="keeper-counter">0 / 25</span>
       </div>
@@ -232,7 +232,7 @@
         <button class="sport-btn nba" onclick="setSport('NBA',this)">NBA</button>
         <button class="sport-btn nhl" onclick="setSport('NHL',this)">NHL</button>
         <button class="sport-btn mlb" onclick="setSport('MLB',this)">MLB</button>
-        <input class="search-box" type="text" placeholder="Search players, positions, teamsâ¦" oninput="setSearch(this.value)" />
+        <input class="search-box" type="text" placeholder="Search players, positions, teams…" oninput="setSearch(this.value)" />
         <span class="pool-count" id="pool-count"></span>
       </div>
       <div class="pool-table-wrap">
@@ -251,12 +251,12 @@
         </table>
       </div>
       <div class="comm-panel" id="comm-panel">
-        <span class="comm-label">â Commissioner</span>
+        <span class="comm-label">⚙ Commissioner</span>
         <select class="comm-select" id="comm-team-select"></select>
-        <button class="comm-btn" onclick="advanceClock()">Advance clock â</button>
+        <button class="comm-btn" onclick="advanceClock()">Advance clock →</button>
         <button class="comm-btn" onclick="resetDraft()">Reset draft</button>
-        <button class="comm-btn" onclick="exportDraftCSV()">â¬ Export results</button>
-        <button class="comm-btn" onclick="exportKeeperCSV()">â¬ Export keepers</button>
+        <button class="comm-btn" onclick="exportDraftCSV()">⬇ Export results</button>
+        <button class="comm-btn" onclick="exportKeeperCSV()">⬇ Export keepers</button>
       </div>
     </div>
 
@@ -328,7 +328,7 @@ let selectedTeamIdx = null;
 let activeKeeperTeam = '';
 let myTeamName = localStorage.getItem('wmsfl_team') || '';
 
-// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Helpers ──────────────────────────────────────────────────
 function snakeOrder(i) { const r=Math.floor(i/12),p=i%12; return r%2===0?p:11-p; }
 function teamForPick(i) { return TEAMS[snakeOrder(i)]; }
 function isDraftActiveHour() {
@@ -340,7 +340,7 @@ function formatTime(s) {
   return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
-// ââ CSV ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CSV ──────────────────────────────────────────────────────
 async function parseCSV(url, sport) {
   const resp = await fetch(url);
   const text = await resp.text();
@@ -355,7 +355,7 @@ async function loadPlayers() {
   allPlayers = results.flat().sort((a,b)=>a.adp-b.adp);
 }
 
-// ââ Mode âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Mode ─────────────────────────────────────────────────────
 function isKeeperMode() { return !draftState.keepersLocked; }
 
 function applyMode() {
@@ -365,13 +365,13 @@ function applyMode() {
   document.getElementById('keeper-team-bar').style.display = keeper ? 'flex' : 'none';
   document.getElementById('comm-panel').style.display = keeper ? 'none' : 'flex';
   document.getElementById('main-layout').className = `main-layout ${keeper?'keeper':'draft'}`;
-  document.getElementById('left-sidebar-title').textContent = keeper ? 'Teams â keeper count' : 'Draft Order â click to view';
+  document.getElementById('left-sidebar-title').textContent = keeper ? 'Teams — keeper count' : 'Draft Order — click to view';
   document.getElementById('right-sidebar-title').textContent = keeper ? 'Keeper Summary' : 'Pick History';
   if (keeper) renderKeeperSummary();
   else renderPicks();
 }
 
-// ââ Keeper logic âââââââââââââââââââââââââââââââââââââââââââââ
+// ── Keeper logic ─────────────────────────────────────────────
 function getKeeperTeam() { return activeKeeperTeam; }
 
 function safeKey(team) { return team.split('/').join('_'); }
@@ -402,7 +402,7 @@ function onKeeperTeamChange() {
 
 function updateKeeperCounter() {
   const team = activeKeeperTeam;
-  if (!team) { document.getElementById('keeper-counter').textContent = 'â / 25'; return; }
+  if (!team) { document.getElementById('keeper-counter').textContent = '— / 25'; return; }
   const count = keepersForTeam(team).length;
   const el = document.getElementById('keeper-counter');
   el.textContent = `${count} / ${MAX_KEEPERS} kept`;
@@ -460,7 +460,7 @@ function clearAllKeepers() {
   db.ref('draft/keepers').remove();
 }
 
-// ââ Filters ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Filters ──────────────────────────────────────────────────
 function setSport(s,btn) {
   sportFilter=s;
   document.querySelectorAll('.sport-btn').forEach(b=>b.classList.remove('active'));
@@ -477,7 +477,7 @@ function filteredPlayers() {
   });
 }
 
-// ââ Render pool ââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Render pool ──────────────────────────────────────────────
 function renderPool() {
   const tbody = document.getElementById('player-tbody');
   const players = filteredPlayers();
@@ -496,11 +496,11 @@ function renderPool() {
     if (keeper) {
       const actionBtn = kept
         ? (isMyKept
-            ? `<button class="unkept-btn" onclick="toggleKeeper('${p.name.replace(/'/g,"\\'")}')">â Kept</button>`
+            ? `<button class="unkept-btn" onclick="toggleKeeper('${p.name.replace(/'/g,"\\'")}')">✓ Kept</button>`
             : `<span class="kept-tag">Kept: ${keptByTeam}</span>`)
         : `<button class="keep-btn" onclick="toggleKeeper('${p.name.replace(/'/g,"\\'")}')">Keep</button>`;
       return `<tr class="${kept&&isMyKept?'kept':''}">
-        <td style="color:#bbb;font-size:11px">${Math.round(p.adp)||'â'}</td>
+        <td style="color:#bbb;font-size:11px">${Math.round(p.adp)||'—'}</td>
         <td class="player-name-cell">${p.name}</td>
         <td style="color:#666">${p.position}</td>
         <td><span class="sport-tag tag-${p.sport}">${p.sport}</span></td>
@@ -510,7 +510,7 @@ function renderPool() {
     } else {
       const isDrafted = p.drafted || kept;
       return `<tr class="${isDrafted?'drafted':''}">
-        <td style="color:#bbb;font-size:11px">${Math.round(p.adp)||'â'}</td>
+        <td style="color:#bbb;font-size:11px">${Math.round(p.adp)||'—'}</td>
         <td class="player-name-cell">${p.name}</td>
         <td style="color:#666">${p.position}</td>
         <td><span class="sport-tag tag-${p.sport}">${p.sport}</span></td>
@@ -524,7 +524,7 @@ function renderPool() {
   }).join('');
 }
 
-// ââ Render teams âââââââââââââââââââââââââââââââââââââââââââââ
+// ── Render teams ─────────────────────────────────────────────
 function renderTeams() {
   const keeper = isKeeperMode();
   const currentTeam = teamForPick(draftState.currentPick);
@@ -553,7 +553,7 @@ function renderTeams() {
 
   if (!keeper) {
     const sel = document.getElementById('comm-team-select');
-    sel.innerHTML = TEAMS.map((t,i)=>`<option value="${i}">Pick â ${t}</option>`).join('');
+    sel.innerHTML = TEAMS.map((t,i)=>`<option value="${i}">Pick → ${t}</option>`).join('');
   }
 }
 
@@ -584,7 +584,7 @@ function toggleTeam(idx) {
   renderTeams();
 }
 
-// ââ Render keeper summary ââââââââââââââââââââââââââââââââââââ
+// ── Render keeper summary ────────────────────────────────────
 function renderKeeperSummary() {
   const el = document.getElementById('right-sidebar-content');
   const html = TEAMS.map(t=>{
@@ -601,7 +601,7 @@ function renderKeeperSummary() {
   el.innerHTML = `<div class="keeper-summary">${html}</div>`;
 }
 
-// ââ Render picks âââââââââââââââââââââââââââââââââââââââââââââ
+// ── Render picks ─────────────────────────────────────────────
 function renderPicks() {
   const el = document.getElementById('picks-list');
   if (!draftState.picks.length) { el.innerHTML='<div class="empty-state">No picks yet</div>'; return; }
@@ -618,19 +618,19 @@ function renderPicks() {
   }</div>`;
 }
 
-// ââ Top bar ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Top bar ──────────────────────────────────────────────────
 function renderTopBar() {
   const pick = draftState.currentPick;
   const total = TOTAL_ROUNDS*12;
   if (pick>=total) {
     document.getElementById('clock-team').textContent='Draft complete!';
     document.getElementById('pick-badge').textContent=`All ${total} picks made`;
-    document.getElementById('timer').textContent='â';
+    document.getElementById('timer').textContent='—';
     return;
   }
   const round=Math.floor(pick/12)+1, pickInRound=(pick%12)+1;
   document.getElementById('clock-team').textContent=teamForPick(pick);
-  document.getElementById('pick-badge').textContent=`Round ${round} Â· Pick ${pickInRound} of 12`;
+  document.getElementById('pick-badge').textContent=`Round ${round} · Pick ${pickInRound} of 12`;
   const t=document.getElementById('timer');
   t.textContent=formatTime(draftState.timerSeconds);
   t.className='timer';
@@ -641,7 +641,7 @@ function renderTopBar() {
   document.getElementById('pause-btn').textContent=draftState.paused?'Resume':'Pause';
 }
 
-// ââ Timer ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Timer ────────────────────────────────────────────────────
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(()=>{
@@ -681,7 +681,7 @@ function executeAutopick() {
   db.ref('draft/timerSeconds').set(TIMER_SECONDS);
 }
 
-// ââ Draft actions ââââââââââââââââââââââââââââââââââââââââââââ
+// ── Draft actions ────────────────────────────────────────────
 function togglePause() { db.ref('draft/paused').set(!draftState.paused); }
 
 function initDraft(playerName) {
@@ -690,7 +690,7 @@ function initDraft(playerName) {
   pendingAction={type:'draft',player:p};
   const team=teamForPick(draftState.currentPick);
   document.getElementById('modal-title').textContent='Confirm pick';
-  document.getElementById('modal-body').textContent=`Draft ${p.name} (${p.sport} Â· ${p.position}) for ${team}?`;
+  document.getElementById('modal-body').textContent=`Draft ${p.name} (${p.sport} · ${p.position}) for ${team}?`;
   document.getElementById('modal-confirm-btn').className='btn-confirm';
   document.getElementById('modal-confirm-btn').textContent='Draft player';
   document.getElementById('modal').classList.add('visible');
@@ -729,7 +729,7 @@ function showNameModal() {
   if(name){myTeamName=name.trim();localStorage.setItem('wmsfl_team',myTeamName);}
 }
 
-// ââ State sync âââââââââââââââââââââââââââââââââââââââââââââââ
+// ── State sync ───────────────────────────────────────────────
 function applyState(state) {
   const prevPick=draftState.currentPick;
   draftState.currentPick=state.currentPick||0;
@@ -762,10 +762,10 @@ function applyState(state) {
   renderPool();
 }
 
-// ââ Init âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Init ─────────────────────────────────────────────────────
 async function init() {
   await loadPlayers();
-  document.getElementById('loading-sub').textContent='Connecting to draft roomâ¦';
+  document.getElementById('loading-sub').textContent='Connecting to draft room…';
   const stateRef=db.ref('draft');
   stateRef.once('value',snap=>{if(!snap.exists())db.ref('draft').set({currentPick:0,paused:false,timerSeconds:TIMER_SECONDS,keepersLocked:false});});
   stateRef.on('value',snap=>applyState(snap.val()||{}));
@@ -774,7 +774,7 @@ async function init() {
   document.getElementById('app').style.display='block';
 }
 
-// ââ Export ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Export ──────────────────────────────────────────────────
 function downloadCSV(filename, rows) {
   const csv = rows.map(r => r.map(c => "\"" + String(c).replace(/\"/g, "\"\"") + "\"").join(",")).join("\n");
   const blob = new Blob([csv], {type:"text/csv"});
