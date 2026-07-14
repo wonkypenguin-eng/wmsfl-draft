@@ -303,7 +303,7 @@ const CSV_URLS = {
 };
 
 const TEAMS = [
-  "Isaac/Jake","Kitzman","Josh","Wonky","Houston","Trey",
+  "Isaac/Jake","Kitzman","Kyle","Wonky","Houston","Trey",
   "Ben","Brett","James","Razor","ProStars","Nic"
 ];
 
@@ -374,7 +374,7 @@ function applyMode() {
 // ── Keeper logic ─────────────────────────────────────────────
 function getKeeperTeam() { return activeKeeperTeam; }
 
-function safeKey(team) { return team.split('/').join('_'); }
+function safeKey(team) { return team.replace(///g, "_"); }
 
 function keepersForTeam(team) {
   return draftState.keepers[safeKey(team)] ? Object.values(draftState.keepers[safeKey(team)]) : [];
