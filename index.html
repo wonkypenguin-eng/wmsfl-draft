@@ -180,8 +180,26 @@
   <div class="mode-banner keeper-mode" id="keeper-banner">
     <span class="mode-banner-title">🔒 Keeper Entry Mode</span>
     <span id="keeper-progress-label" style="font-size:12px;opacity:0.8"></span>
+    <button class="mode-btn" onclick="showImportPanel()">⬆ Import keepers</button>
     <button class="mode-btn danger" onclick="clearAllKeepers()">Clear all keepers</button>
     <button class="mode-btn primary" onclick="lockKeepers()">Lock Keepers & Start Draft →</button>
+  </div>
+
+
+  <!-- IMPORT PANEL -->
+  <div id="import-panel" style="display:none;background:#1e3a5f;color:white;padding:14px 20px;gap:12px;flex-wrap:wrap;align-items:flex-start;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:12px;width:100%">
+      <span style="font-size:14px;font-weight:700">⬆ Import Keeper List</span>
+      <select id="import-team-select" style="padding:5px 10px;border-radius:6px;border:none;font-size:13px;background:white;color:#333;min-width:160px"><option value="">— Select team —</option></select>
+      <select id="import-sport-select" style="padding:5px 10px;border-radius:6px;border:none;font-size:13px;background:white;color:#333"><option value="ALL">All sports</option><option value="NFL">NFL only</option><option value="NBA">NBA only</option><option value="NHL">NHL only</option><option value="MLB">MLB only</option></select>
+      <button onclick="runImport()" style="padding:5px 16px;background:#e8b84b;color:#1a1a2e;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700">Import</button>
+      <button onclick="hideImportPanel()" style="padding:5px 12px;background:transparent;border:1px solid rgba(255,255,255,0.4);color:white;border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>
+    </div>
+    <textarea id="import-textarea" placeholder="Paste keeper list here — one player per line. Position info after the dot is ignored automatically." style="width:100%;height:120px;padding:10px;border-radius:6px;border:none;font-size:13px;font-family:monospace;resize:vertical;color:#333"></textarea>
+    <div id="import-results" style="font-size:12px;width:100%;display:none">
+      <div id="import-matched" style="margin-bottom:6px"></div>
+      <div id="import-unmatched" style="color:#ffaaaa"></div>
+    </div>
   </div>
 
   <!-- DRAFT MODE HEADER -->
@@ -772,6 +790,95 @@ async function init() {
   startTimer();
   document.getElementById('loading').style.display='none';
   document.getElementById('app').style.display='block';
+}
+
+// ── Import ──────────────────────────────────────────────────
+function showImportPanel() {
+  const panel = document.getElementById("import-panel");
+  panel.style.display = "flex";
+  const sel = document.getElementById("import-team-select");
+  if (sel.options.length <= 1) {
+    TEAMS.forEach(t => { const o = document.createElement("option"); o.value = t; o.textContent = t; sel.appendChild(o); });
+  }
+  document.getElementById("import-results").style.display = "none";
+  document.getElementById("import-textarea").value = "";
+}
+
+function hideImportPanel() {
+  document.getElementById("import-panel").style.display = "none";
+}
+
+function normalizeName(n) {
+  return n.toLowerCase()
+    .replace(/u00e9/g,"e").replace(/u00e1/g,"a").replace(/u00ed/g,"i").replace(/u00f3/g,"o").replace(/u00fa/g,"u")
+    .replace(/u00fc/g,"u").replace(/u00f1/g,"n").replace(/u00e0/g,"a").replace(/u00e8/g,"e")
+    .replace(/[^a-z0-9 ]/g," ").replace(/s+/g," ").trim();
+}
+
+function parsePastedList(text, sport) {
+  return text.split("
+")
+    .map(line => line.split("u00b7")[0].trim())
+    .map(line => line.replace(/(Batter)|(Pitcher)/gi,"").trim())
+    .map(line => line.replace(/s+/g," ").trim())
+    .filter(line => line.length > 2 && !/^=+$/.test(line) && !/^--/.test(line) && !/LOCKED|KEEPERS|Enter into|sport|league/i.test(line) && !/^d+$/.test(line));
+}
+
+function fuzzyMatch(name, sport) {
+  const norm = normalizeName(name);
+  const pool = sport === "ALL" ? allPlayers : allPlayers.filter(p => p.sport === sport);
+  let best = null, bestScore = 0;
+  pool.forEach(p => {
+    const pn = normalizeName(p.name);
+    if (pn === norm) { best = p; bestScore = 1; return; }
+    if (pn.includes(norm) || norm.includes(pn)) {
+      const score = Math.min(pn.length, norm.length) / Math.max(pn.length, norm.length);
+      if (score > bestScore) { best = p; bestScore = score; }
+    }
+  });
+  return bestScore >= 0.8 ? best : null;
+}
+
+function runImport() {
+  const team = document.getElementById("import-team-select").value;
+  const sport = document.getElementById("import-sport-select").value;
+  const text = document.getElementById("import-textarea").value;
+  if (!team) { alert("Please select a team first."); return; }
+  if (!text.trim()) { alert("Please paste a keeper list first."); return; }
+  const names = parsePastedList(text, sport);
+  const matched = [], unmatched = [], dupes = [];
+  const seenNames = new Set();
+  names.forEach(name => {
+    if (seenNames.has(normalizeName(name))) { dupes.push(name); return; }
+    seenNames.add(normalizeName(name));
+    const player = fuzzyMatch(name, sport);
+    if (player) {
+      const alreadyKeptBy = keptBy(player.name);
+      if (alreadyKeptBy && alreadyKeptBy !== team) {
+        unmatched.push(`${name} — already kept by ${alreadyKeptBy}`);
+      } else if (!keepersForTeam(team).some(k => k.name === player.name)) {
+        const cur = keepersForTeam(team).length;
+        if (cur >= MAX_KEEPERS) { unmatched.push(`${name} — ${team} already has 25 keepers`); return; }
+        db.ref(`draft/keepers/${safeKey(team)}`).push({ name: player.name, sport: player.sport, position: player.position, proTeam: player.team });
+        matched.push(`✓ ${player.name} (${player.sport})`);
+      } else {
+        matched.push(`✓ ${player.name} (${player.sport}) — already kept`);
+      }
+    } else {
+      unmatched.push(`✗ "${name}" — not found in player pool`);
+    }
+  });
+  const res = document.getElementById("import-results");
+  res.style.display = "block";
+  document.getElementById("import-matched").innerHTML =
+    `<strong style="color:#90ee90">${matched.length} imported:</strong><br>` + matched.join("<br>");
+  document.getElementById("import-unmatched").innerHTML = unmatched.length
+    ? `<strong style="color:#ffaaaa">${unmatched.length} not matched (add manually):</strong><br>` + unmatched.join("<br>")
+    : `<span style="color:#90ee90">All players matched!</span>`;
+  if (dupes.length) {
+    document.getElementById("import-unmatched").innerHTML +=
+      `<br><strong style="color:#ffd700">${dupes.length} duplicates skipped:</strong><br>` + dupes.join("<br>");
+  }
 }
 
 // ── Export ──────────────────────────────────────────────────
