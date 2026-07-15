@@ -744,8 +744,13 @@ function togglePause() { db.ref('draft/paused').set(!draftState.paused); }
 function initDraft(playerName) {
   const p = allPlayers.find(function(pl) { return pl.name === playerName; });
   if (!p || p.drafted || isKept(p.name)) return;
-  pendingAction = { type: 'draft', player: p };
   const team = teamForPick(draftState.currentPick);
+  // Restrict picks to the team on the clock (commissioners can pick for anyone)
+  if (myTeamName && myTeamName !== team && myTeamName !== 'commissioner') {
+    alert('It is ' + team + '\'s pick — please wait your turn!');
+    return;
+  }
+  pendingAction = { type: 'draft', player: p };
   document.getElementById('modal-title').textContent = 'Confirm pick';
   document.getElementById('modal-body').textContent = 'Draft ' + p.name + ' (' + p.sport + ' · ' + p.position + ') for ' + team + '?';
   document.getElementById('modal').classList.add('visible');
