@@ -313,6 +313,13 @@
           <tbody id="player-tbody"></tbody>
         </table>
       </div>
+      <div class="queue-panel" id="queue-panel">
+        <div class="queue-header">
+          <span class="queue-title">⭐ My Draft Queue</span>
+          <button class="queue-remove-btn" onclick="clearQueue()" style="font-size:11px">Clear all</button>
+        </div>
+        <div id="queue-list"><div class="queue-empty">No players queued — click ☆ next to any player to add</div></div>
+      </div>
       <div class="comm-panel" id="comm-panel">
         <span class="comm-label">⚙ Commissioner Tools</span>
         <select class="comm-select" id="comm-team-select"></select>
@@ -695,9 +702,24 @@ function clearAutopickCountdown(){
   document.getElementById('autopick-pill').style.display='none';
 }
 function executeAutopick(){
-  const best=allPlayers.find(function(p){return !p.drafted&&!isKept(p.name);});
-  if(!best) return;
-  const pick=draftState.currentPick,round=Math.floor(pick/12)+1,team=teamForPick(pick);
+  const team = teamForPick(draftState.currentPick);
+  // Check queue for the team on the clock first
+  const teamKey = safeKey(team);
+  const qData = draftState.queues && draftState.queues[teamKey];
+  let best = null;
+  if (qData) {
+    const queueItems = Object.entries(qData)
+      .sort(function(a,b){return (a[1].order||0)-(b[1].order||0);})
+      .map(function(e){return e[1];});
+    for (let i=0; i<queueItems.length; i++) {
+      const p = allPlayers.find(function(pl){return pl.name===queueItems[i].name&&!pl.drafted&&!isKept(pl.name);});
+      if (p) { best = p; break; }
+    }
+  }
+  // Fall back to top ADP
+  if (!best) best = allPlayers.find(function(p){return !p.drafted&&!isKept(p.name);});
+  if (!best) return;
+  const pick=draftState.currentPick,round=Math.floor(pick/12)+1;
   db.ref('draft/picks/'+pick).set({pickNum:pick+1,round:round,player:best.name,sport:best.sport,position:best.position,team:team,auto:true,timestamp:Date.now()});
   db.ref('draft/currentPick').set(pick+1);
   db.ref('draft/timerSeconds').set(TIMER_SECONDS);
@@ -745,6 +767,76 @@ function showNameModal(){
   if(name){myTeamName=name.trim();localStorage.setItem('wmsfl_team',myTeamName);}
 }
 
+
+// ── Queue ────────────────────────────────────────────────────
+function getQueue() {
+  if (!myTeamName) return [];
+  const q = draftState.queues && draftState.queues[safeKey(myTeamName)];
+  return q ? Object.entries(q).sort(function(a,b){return (a[1].order||0)-(b[1].order||0);}).map(function(e){return Object.assign({_key:e[0]},e[1]);}) : [];
+}
+
+function toggleQueue(playerName) {
+  if (!myTeamName) { alert('Please set your team name first (top right).'); return; }
+  const p = allPlayers.find(function(pl){return pl.name===playerName;});
+  if (!p) return;
+  const queue = getQueue();
+  const existing = queue.find(function(q){return q.name===playerName;});
+  if (existing) {
+    db.ref('draft/queues/'+safeKey(myTeamName)+'/'+existing._key).remove();
+  } else {
+    db.ref('draft/queues/'+safeKey(myTeamName)).push({name:p.name,sport:p.sport,position:p.position,order:queue.length});
+  }
+}
+
+function moveQueueItem(key, direction) {
+  const queue = getQueue();
+  const idx = queue.findIndex(function(q){return q._key===key;});
+  const swapIdx = idx + direction;
+  if (swapIdx < 0 || swapIdx >= queue.length) return;
+  const updates = {};
+  updates['draft/queues/'+safeKey(myTeamName)+'/'+queue[idx]._key+'/order'] = swapIdx;
+  updates['draft/queues/'+safeKey(myTeamName)+'/'+queue[swapIdx]._key+'/order'] = idx;
+  db.ref().update(updates);
+}
+
+function clearQueue() {
+  if (!myTeamName) return;
+  if (!confirm('Clear your entire queue?')) return;
+  db.ref('draft/queues/'+safeKey(myTeamName)).remove();
+}
+
+function renderQueue() {
+  const panel = document.getElementById('queue-panel');
+  const list = document.getElementById('queue-list');
+  if (!myTeamName || isKeeperMode()) { panel.classList.remove('visible'); return; }
+  panel.classList.add('visible');
+  const queue = getQueue();
+  if (!queue.length) {
+    list.innerHTML = '<div class="queue-empty">No players queued — click ☆ next to any player to add</div>';
+    return;
+  }
+  list.innerHTML = queue.map(function(q, i) {
+    const p = allPlayers.find(function(pl){return pl.name===q.name;});
+    const unavailable = p && (p.drafted || isKept(p.name));
+    return '<div class="queue-item '+(unavailable?'unavailable':'')+'">'
+      +'<button class="queue-move-btn" onclick="moveQueueItem(''+q._key+'',-1)" '+(i===0?'disabled':'')+'>↑</button>'
+      +'<button class="queue-move-btn" onclick="moveQueueItem(''+q._key+'',1)" '+(i===queue.length-1?'disabled':'')+'>↓</button>'
+      +'<span class="queue-item-name">'+q.name+'</span>'
+      +'<span class="queue-item-sport">'+q.sport+'</span>'
+      +'<button class="queue-remove-btn" onclick="toggleQueue(''+q.name.replace(/'/g,"\'")+'')" title="Remove">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function getNextFromQueue() {
+  const queue = getQueue();
+  for (let i = 0; i < queue.length; i++) {
+    const p = allPlayers.find(function(pl){return pl.name===queue[i].name;});
+    if (p && !p.drafted && !isKept(p.name)) return p;
+  }
+  return null;
+}
+
 // ── Export ───────────────────────────────────────────────────
 function downloadCSV(filename,rows){
   const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
@@ -777,6 +869,7 @@ function applyState(state){
   draftState.timerSeconds=state.timerSeconds!==undefined?state.timerSeconds:TIMER_SECONDS;
   draftState.picks=state.picks?Object.values(state.picks):[];
   draftState.keepers=state.keepers||{};
+  draftState.queues=state.queues||{};
   draftState.keepersLocked=state.keepersLocked||false;
   const drafted=new Set(draftState.picks.map(function(p){return p.player;}));
   allPlayers.forEach(function(p){
@@ -793,6 +886,7 @@ function applyState(state){
   renderTopBar();
   renderTeams();
   renderPool();
+  renderQueue();
 }
 
 // ── Init ─────────────────────────────────────────────────────
