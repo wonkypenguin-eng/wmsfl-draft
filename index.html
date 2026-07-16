@@ -662,10 +662,12 @@ function renderTopBar(){
 function startTimer(){
   clearInterval(timerInterval);
   timerInterval=setInterval(function(){
-    if(isKeeperMode()||draftState.paused||draftState.timerSeconds<=0) return;
-    draftState.timerSeconds--;
+    if(isKeeperMode()||draftState.paused) return;
+    var now=Date.now();
+    var remaining=draftState.pickDeadline?Math.max(0,Math.floor((draftState.pickDeadline-now)/1000)):0;
+    draftState.timerSeconds=remaining;
     renderTopBar();
-    if(draftState.timerSeconds===0&&isDraftActiveHour()) startAutopickCountdown();
+    if(remaining===0&&isDraftActiveHour()&&draftState.pickDeadline) startAutopickCountdown();
   },1000);
 }
 function startAutopickCountdown(){
@@ -702,10 +704,22 @@ function executeAutopick(){
   var pick=draftState.currentPick,round=Math.floor(pick/12)+1;
   db.ref('draft/picks/'+pick).set({pickNum:pick+1,round:round,player:best.name,sport:best.sport,position:best.position,team:team,auto:true,timestamp:Date.now()});
   db.ref('draft/currentPick').set(pick+1);
-  db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+  db.ref('draft/pickDeadline').set(Date.now()+(TIMER_SECONDS*1000));
 }
 
-function togglePause(){db.ref('draft/paused').set(!draftState.paused);}
+function togglePause(){
+  if(draftState.paused){
+    // Resuming — set new deadline based on remaining time
+    var newDeadline=Date.now()+(draftState.timerSeconds*1000);
+    db.ref('draft/paused').set(false);
+    db.ref('draft/pickDeadline').set(newDeadline);
+  } else {
+    // Pausing — save remaining seconds so we can restore on resume
+    var remaining=draftState.pickDeadline?Math.max(0,Math.floor((draftState.pickDeadline-Date.now())/1000)):TIMER_SECONDS;
+    db.ref('draft/paused').set(true);
+    db.ref('draft/timerSeconds').set(remaining);
+  }
+}
 function initDraft(name){
   var p=allPlayers.find(function(pl){return pl.name===name;});
   if(!p||p.drafted||isKept(p.name)) return;
@@ -723,7 +737,7 @@ function confirmAction(){
     var p=pendingAction.player,pick=draftState.currentPick,round=Math.floor(pick/12)+1,team=teamForPick(pick);
     db.ref('draft/picks/'+pick).set({pickNum:pick+1,round:round,player:p.name,sport:p.sport,position:p.position,team:team,auto:false,timestamp:Date.now()});
     db.ref('draft/currentPick').set(pick+1);
-    db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+    db.ref('draft/pickDeadline').set(Date.now()+(TIMER_SECONDS*1000));
     clearAutopickCountdown();
   }
   closeModal();
@@ -731,12 +745,12 @@ function confirmAction(){
 function advanceClock(){
   var idx=parseInt(document.getElementById('comm-team-select').value);
   db.ref('draft/currentPick').set(idx);
-  db.ref('draft/timerSeconds').set(TIMER_SECONDS);
+  db.ref('draft/pickDeadline').set(Date.now()+(TIMER_SECONDS*1000));
   clearAutopickCountdown();
 }
 function resetDraft(){
   if(!confirm('Reset the entire draft? This cannot be undone.')) return;
-  db.ref('draft').set({currentPick:0,paused:false,timerSeconds:TIMER_SECONDS,picks:[],keepers:draftState.keepers,keepersLocked:false});
+  db.ref('draft').set({currentPick:0,paused:false,pickDeadline:Date.now()+(TIMER_SECONDS*1000),picks:[],keepers:draftState.keepers,keepersLocked:false});
   clearAutopickCountdown();
 }
 function showNameModal(){
@@ -771,7 +785,13 @@ function applyState(state){
   var prevPick=draftState.currentPick;
   draftState.currentPick=state.currentPick||0;
   draftState.paused=state.paused||false;
-  draftState.timerSeconds=state.timerSeconds!==undefined?state.timerSeconds:TIMER_SECONDS;
+  draftState.pickDeadline=state.pickDeadline||null;
+  if(state.paused&&state.timerSeconds!==undefined){
+    draftState.timerSeconds=state.timerSeconds;
+  } else {
+    var remaining=state.pickDeadline?Math.max(0,Math.floor((state.pickDeadline-Date.now())/1000)):TIMER_SECONDS;
+    draftState.timerSeconds=remaining;
+  }
   draftState.picks=state.picks?Object.values(state.picks):[];
   draftState.keepers=state.keepers||{};
   draftState.queues=state.queues||{};
